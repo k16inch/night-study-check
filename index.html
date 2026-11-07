@@ -1,248 +1,230 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>야자 바코드 출석 체크</title>
-  <!-- HTML5 QR/Barcode Code 스캐너 라이브러리 -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #f4f6f9; color: #333; padding: 20px; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background-color: #f4f6f9; color: #333; padding: 20px; }
+
+    /* 전체 컨테이너 및 헤더 */
+.app-header { max-width: 960px; margin: 0 auto 12px auto; text-align: center; }
+h2 { color: #1e293b; font-size: 1.4rem; margin-bottom: 2px; }
+.sub-title { color: #64748b; font-size: 0.85rem; margin-bottom: 6px; }
+@@ -28,7 +27,6 @@
+.db-status.success { background: #dcfce7; color: #15803d; }
+.db-status.error { background: #fee2e2; color: #b91c1c; }
+
+    /* 메인 그리드 레이아웃 (노트북 화면: 2열 배치) */
+.main-grid {
+max-width: 960px;
+margin: 0 auto;
+@@ -45,10 +43,8 @@
+}
+
+.left-col, .right-col { display: flex; flex-direction: column; gap: 14px; }
+
+.card { background: #fff; padding: 18px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+    /* 1. 현황판 스타일 */
+.total-card {
+display: flex;
+justify-content: space-between;
+@@ -60,7 +56,6 @@
+.total-card span { font-size: 1.05rem; font-weight: 500; }
+.total-card strong { font-size: 1.8rem; font-weight: bold; }
+
+    /* 2. 카메라 영역 및 제어 버튼 */
+.camera-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.camera-header h3 { font-size: 1rem; color: #334155; }
+
+@@ -80,7 +75,6 @@
+#feedback { margin-top: 10px; text-align: center; font-size: 0.95rem; font-weight: bold; color: #0284c7; word-break: break-all; }
+.warning { color: #dc2626 !important; font-weight: bold; }
+
+    /* 3. USB 리더기 수동 입력 폼 */
+#manual-form { display: flex; gap: 8px; }
+#manual-form input { 
+flex: 1; 
+@@ -90,12 +84,10 @@
+font-size: 1rem; 
+background-color: #f0f9ff;
+font-weight: 500;
+      ime-mode: disabled; /* 한글 입력 모드 비활성화 힌트 */
+}
+#manual-form input:focus { outline: none; background-color: #ffffff; border-color: #0369a1; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2); }
+#manual-form button { padding: 10px 16px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+    /* 4. 오른쪽 영역: 당일 출석 명단 리스트 */
+.label-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.label { font-size: 0.95rem; color: #334155; font-weight: bold; }
+
+@@ -135,52 +127,42 @@
+.attendance-item .num { font-size: 0.8rem; color: #64748b; font-weight: bold; width: 30px; }
+.attendance-item .student-info { flex: 1; font-weight: bold; color: #0f172a; word-break: break-all; }
+.attendance-item .time { font-size: 0.75rem; color: #94a3b8; }
     
-    .app-header { max-width: 960px; margin: 0 auto 12px auto; text-align: center; }
-    h2 { color: #1e293b; font-size: 1.4rem; margin-bottom: 2px; }
-    .sub-title { color: #64748b; font-size: 0.85rem; margin-bottom: 6px; }
-    
-    .db-status {
-      display: inline-block;
-      font-size: 0.78rem;
-      padding: 4px 12px;
-      border-radius: 20px;
-      background: #e2e8f0;
-      color: #475569;
-      font-weight: 500;
-    }
-    .db-status.success { background: #dcfce7; color: #15803d; }
-    .db-status.error { background: #fee2e2; color: #b91c1c; }
+.empty-msg { text-align: center; color: #94a3b8; font-size: 0.85rem; padding: 30px 0; }
 
-    .main-grid {
-      max-width: 960px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-
-    @media (min-width: 768px) {
-      .main-grid {
-        grid-template-columns: 1.05fr 0.95fr;
-        align-items: start;
-      }
-    }
-
-    .left-col, .right-col { display: flex; flex-direction: column; gap: 14px; }
-    .card { background: #fff; padding: 18px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-
-    .total-card {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #0284c7;
-      color: #fff;
-      padding: 18px 20px;
-    }
-    .total-card span { font-size: 1.05rem; font-weight: 500; }
-    .total-card strong { font-size: 1.8rem; font-weight: bold; }
-
-    .camera-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .camera-header h3 { font-size: 1rem; color: #334155; }
-    
-    .btn-cam {
-      padding: 6px 14px;
-      font-size: 0.85rem;
-      font-weight: bold;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn-cam.stop { background: #ef4444; color: white; }
-    .btn-cam.start { background: #22c55e; color: white; }
-
-    #reader { width: 100%; border-radius: 6px; overflow: hidden; background: #000; min-height: 180px; }
-    #feedback { margin-top: 10px; text-align: center; font-size: 0.95rem; font-weight: bold; color: #0284c7; word-break: break-all; }
-    .warning { color: #dc2626 !important; font-weight: bold; }
-
-    #manual-form { display: flex; gap: 8px; }
-    #manual-form input { 
-      flex: 1; 
-      padding: 12px 14px; 
-      border: 2px solid #0284c7; 
-      border-radius: 6px; 
-      font-size: 1rem; 
-      background-color: #f0f9ff;
-      font-weight: 500;
-    }
-    #manual-form input:focus { outline: none; background-color: #ffffff; border-color: #0369a1; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2); }
-    #manual-form button { padding: 10px 16px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
-    .label-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .label { font-size: 0.95rem; color: #334155; font-weight: bold; }
-    
-    .btn-group-sm { display: flex; gap: 8px; align-items: center; }
-    .btn-sync { background: none; border: none; color: #0284c7; text-decoration: underline; cursor: pointer; font-size: 0.8rem; }
-    .btn-reset { background: #f1f5f9; border: 1px solid #cbd5e1; color: #ef4444; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
-    .btn-reset:hover { background: #fee2e2; }
-
-    .attendance-list-container {
-      height: 380px;
-      overflow-y: auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 8px;
-      background: #f8fafc;
-    }
-
-    .attendance-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .attendance-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #ffffff;
-      padding: 10px 12px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      border-left: 4px solid #0284c7;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    }
-
-    .attendance-item .num { font-size: 0.8rem; color: #64748b; font-weight: bold; width: 30px; }
-    .attendance-item .student-info { flex: 1; font-weight: bold; color: #0f172a; word-break: break-all; }
-    .attendance-item .time { font-size: 0.75rem; color: #94a3b8; }
-    .empty-msg { text-align: center; color: #94a3b8; font-size: 0.85rem; padding: 30px 0; }
-    .sync-status { font-size: 0.8rem; color: #0284c7; text-align: right; margin-top: 8px; }
-  </style>
+.sync-status { font-size: 0.8rem; color: #0284c7; text-align: right; margin-top: 8px; }
+</style>
 </head>
 <body>
 
-  <div class="app-header">
-    <h2>🌙 야자 바코드 출석 체크</h2>
-    <p class="sub-title" id="current-date"></p>
-    <div id="db-status-bar" class="db-status">🔄 구글 시트에서 학생 명단 불러오는 중...</div>
-  </div>
+  <!-- 헤더 영역 -->
+<div class="app-header">
+<h2>🌙 야자 바코드 출석 체크</h2>
+<p class="sub-title" id="current-date"></p>
+<div id="db-status-bar" class="db-status">🔄 구글 시트에서 학생 명단 불러오는 중...</div>
+</div>
 
-  <div class="main-grid">
-    <div class="left-col">
-      <div class="card total-card">
-        <span>오늘 출석 인원</span>
-        <strong id="count">0명</strong>
-      </div>
+  <!-- 메인 레이아웃 -->
+<div class="main-grid">
+    
+    <!-- 왼쪽 컬럼: 현황판, 카메라, 수동 입력창 -->
+<div class="left-col">
+      <!-- 1. 오늘 총 등록 인원 현황판 -->
+<div class="card total-card">
+<span>오늘 출석 인원</span>
+<strong id="count">0명</strong>
+</div>
 
-      <div class="card">
-        <div class="camera-header">
-          <h3>📷 바코드 스캐너</h3>
-          <button id="cam-toggle-btn" class="btn-cam start" onclick="toggleCamera()">카메라 켜기</button>
-        </div>
-        <div id="reader"></div>
+      <!-- 2. 바코드/QR 스캐너 -->
+<div class="card">
+<div class="camera-header">
+<h3>📷 바코드 스캐너</h3>
+<button id="cam-toggle-btn" class="btn-cam start" onclick="toggleCamera()">카메라 켜기</button>
+</div>
+<div id="reader"></div>
+        <p id="feedback">USB 바코드 리더기를 꽂고 바코드를 스캔하세요.</p>
         <p id="feedback">USB 바코드 리더기 또는 카메라를 이용하세요.</p>
-      </div>
+</div>
 
-      <div class="card">
-        <form id="manual-form">
+      <!-- 3. USB 리더기 / 수동 입력 폼 -->
+<div class="card">
+<form id="manual-form">
+          <input type="text" id="manual-input" placeholder="바코드 스캔 또는 수동 입력 가능" autocomplete="off" required>
           <input type="text" id="manual-input" placeholder="바코드 스캔 (한/영 자동 변환)" autocomplete="off" required>
-          <button type="submit">등록</button>
-        </form>
-      </div>
-    </div>
+<button type="submit">등록</button>
+</form>
+</div>
+</div>
 
-    <div class="right-col">
-      <div class="card" style="height: 100%;">
-        <div class="label-group">
-          <span class="label">📋 오늘 출석 명단</span>
-          <div class="btn-group-sm">
-            <button class="btn-sync" onclick="syncOfflineData()">🔄 동기화</button>
-            <button class="btn-reset" onclick="clearTodayData()">🗑️ 초기화</button>
-          </div>
-        </div>
-        
-        <div class="attendance-list-container">
-          <ul id="attendance-list" class="attendance-list">
-            <li class="empty-msg">아직 등록된 학생이 없습니다.</li>
-          </ul>
-        </div>
+    <!-- 오른쪽 컬럼: 당일 등록 학생 전체 명단 -->
+<div class="right-col">
+<div class="card" style="height: 100%;">
+<div class="label-group">
+@@ -200,52 +182,36 @@ <h3>📷 바코드 스캐너</h3>
+<div class="sync-status" id="offline-count-status">미전송 대기: 0건</div>
+</div>
+</div>
 
-        <div class="sync-status" id="offline-count-status">미전송 대기: 0건</div>
-      </div>
-    </div>
-  </div>
+</div>
 
-  <script>
-    // --------------------------------------------------
+<script>
+// --------------------------------------------------
+    // 설정: 구글 앱스 스크립트(GAS) Web App URL
     // ⚠️ 설정: 본인의 GAS Web App URL을 여기에 꼭 넣어주세요!
-    // --------------------------------------------------
+// --------------------------------------------------
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwjeIzlcIxMgZp-M3Jrd7m7woHEQUZKlBPPogyGmTHbkug32TxLQrQy3KRYExaymxs/exec"; // 본인 URL 유지
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwjeIzlcIxMgZp-M3Jrd7m7woHEQUZKlBPPogyGmTHbkug32TxLQrQy3KRYExaymxs/exec";
 
-    let html5QrCode = null;
-    let isCameraRunning = false;
-    let isProcessing = false;
-    let studentDB = {};
+let html5QrCode = null;
+let isCameraRunning = false;
+let isProcessing = false;
+    
+let studentDB = {};
 
-    const todayKey = new Date().toISOString().split('T')[0];
-    let attendanceData = JSON.parse(localStorage.getItem(`attendance_list_${todayKey}`)) || [];
-    let offlineQueue = JSON.parse(localStorage.getItem(`offline_queue_${todayKey}`)) || [];
+const todayKey = new Date().toISOString().split('T')[0];
+    
+let attendanceData = JSON.parse(localStorage.getItem(`attendance_list_${todayKey}`)) || [];
+let offlineQueue = JSON.parse(localStorage.getItem(`offline_queue_${todayKey}`)) || [];
 
-    let audioCtx = null;
-    function getAudioContext() {
+let audioCtx = null;
+
+function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
-      return audioCtx;
-    }
+return audioCtx;
+}
 
+    // --------------------------------------------------
+    // 🔤 한글 ➔ 영문 자판 자동 변환 함수
+    // --------------------------------------------------
     // 🔤 한글 자판 입력 ➔ 영문 자판 자동 변환 함수
-    function korToEng(str) {
-      const engInitials = ["r","R","s","e","E","f","a","q","Q","t","T","d","w","W","c","z","x","v","g"];
-      const engVowels = ["k","o","i","O","j","p","n","P","h","hk","ho","hl","y","n","nj","np","nl","l","m","ml","l"];
-      const engFinals = ["","r","R","rt","s","sw","sg","e","f","fr","fa","fq","ft","fx","fv","fg","a","q","qt","t","T","d","w","c","z","x","v","g"];
+function korToEng(str) {
+      const korInitials = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const engInitials = ["r","R","s","e","E","f","a","q","Q","t","T","d","w","W","c","z","x","v","g"];
+      
+      const korVowels = ["ㅏ","ㅐ","ㅑ","ㅒ","ㅓ","ㅔ","ㅕ","ㅖ","ㅗ","ㅘ","ㅙ","ㅚ","ㅛ","ㅜ","ㅝ","ㅞ","ㅟ","ㅠ","ㅡ","ㅢ","ㅣ"];
+const engVowels = ["k","o","i","O","j","p","n","P","h","hk","ho","hl","y","n","nj","np","nl","l","m","ml","l"];
 
-      const directMap = {
-        'ㄱ':'r', 'ㄲ':'R', 'ㄴ':'s', 'ㄷ':'e', 'ㄸ':'E', 'ㄹ':'f', 'ㅁ':'a', 'ㅂ':'q', 'ㅃ':'Q',
-        'ㅅ':'t', 'ㅆ':'T', 'ㅇ':'d', 'ㅈ':'w', 'ㅉ':'W', 'ㅊ':'c', 'ㅋ':'z', 'ㅌ':'x', 'ㅍ':'v', 'ㅎ':'g',
-        'ㅏ':'k', 'ㅐ':'o', 'ㅑ':'i', 'ㅒ':'O', 'ㅓ':'j', 'ㅔ':'p', 'ㅕ':'n', 'ㅖ':'P', 'ㅗ':'h',
-        'ㅛ':'y', 'ㅜ':'n', 'ㅠ':'l', 'ㅡ':'m', 'ㅣ':'l'
-      };
+      const korFinals = ["","ㄱ","ㄲ","ㄳ","ㄴ","앉","않","ㄷ","ㄹ","ㄺ","ㄻ","ㄼ","ㄽ","ㄾ","ㄿ","ㅀ","ㅁ","ㅂ","ㅄ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const engFinals = ["","r","R","rt","s","sw","sg","e","f","fr","fa","fq","ft","fx","fv","fg","a","q","qt","t","T","d","w","c","z","x","v","g"];
 
-      let result = "";
-      for (let i = 0; i < str.length; i++) {
-        let code = str.charCodeAt(i);
-        if (directMap[str[i]]) {
-          result += directMap[str[i]];
-          continue;
-        }
-        if (code >= 0xAC00 && code <= 0xD7A3) {
-          let uniIndex = code - 0xAC00;
-          let initial = Math.floor(uniIndex / 588);
-          let vowel = Math.floor((uniIndex % 588) / 28);
-          let final = uniIndex % 28;
-          result += engInitials[initial] + engVowels[vowel] + engFinals[final];
-        } else {
-          result += str[i];
-        }
+      // 단일 자음/모음 직접 맵핑 테이블 (바코드 오입력 직격 대응)
+const directMap = {
+'ㄱ':'r', 'ㄲ':'R', 'ㄴ':'s', 'ㄷ':'e', 'ㄸ':'E', 'ㄹ':'f', 'ㅁ':'a', 'ㅂ':'q', 'ㅃ':'Q',
+'ㅅ':'t', 'ㅆ':'T', 'ㅇ':'d', 'ㅈ':'w', 'ㅉ':'W', 'ㅊ':'c', 'ㅋ':'z', 'ㅌ':'x', 'ㅍ':'v', 'ㅎ':'g',
+@@ -256,92 +222,57 @@ <h3>📷 바코드 스캐너</h3>
+let result = "";
+for (let i = 0; i < str.length; i++) {
+let code = str.charCodeAt(i);
+
+        // 1. 단일 자음/모음 변환 (예: 'ㅋ' -> 'z')
+if (directMap[str[i]]) {
+result += directMap[str[i]];
+continue;
+}
+
+        // 2. 완완성형 한글 가-힣 조합 분해 변환
+if (code >= 0xAC00 && code <= 0xD7A3) {
+let uniIndex = code - 0xAC00;
+let initial = Math.floor(uniIndex / 588);
+let vowel = Math.floor((uniIndex % 588) / 28);
+let final = uniIndex % 28;
+
+result += engInitials[initial] + engVowels[vowel] + engFinals[final];
+} else {
+          // 영문, 숫자 등 일반 문자는 그대로 유지
+result += str[i];
+}
+}
+return result;
+}
+
+    // --------------------------------------------------
+    // 🔊 효과음 재생 함수 (성공 / 중복)
+    // --------------------------------------------------
+function playSuccessBeep() {
+try {
+const ctx = getAudioContext();
+const now = ctx.currentTime;
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, now);
+        gain1.gain.setValueAtTime(0.3, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.08);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1320, now + 0.1);
+        gain2.gain.setValueAtTime(0.3, now + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.1);
+        osc2.stop(now + 0.25);
+      } catch (e) {
+        console.error("오디오 재생 실패:", e);
       }
-      return result;
-    }
-
-    function playSuccessBeep() {
-      try {
-        const ctx = getAudioContext();
-        const now = ctx.currentTime;
         const osc1 = ctx.createOscillator(), gain1 = ctx.createGain();
         osc1.type = 'sine'; osc1.frequency.setValueAtTime(880, now);
         gain1.gain.setValueAtTime(0.3, now); gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
@@ -255,12 +237,37 @@
         osc2.connect(gain2); gain2.connect(ctx.destination);
         osc2.start(now + 0.1); osc2.stop(now + 0.25);
       } catch (e) {}
-    }
+}
 
-    function playWarningBeep() {
-      try {
-        const ctx = getAudioContext();
-        const now = ctx.currentTime;
+function playWarningBeep() {
+try {
+const ctx = getAudioContext();
+const now = ctx.currentTime;
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(220, now);
+        gain1.gain.setValueAtTime(0.3, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sawtooth';
+        osc2.frequency.setValueAtTime(220, now + 0.18);
+        gain2.gain.setValueAtTime(0.3, now + 0.18);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.33);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.18);
+        osc2.stop(now + 0.33);
+      } catch (e) {
+        console.error("오디오 재생 실패:", e);
+      }
         const osc1 = ctx.createOscillator(), gain1 = ctx.createGain();
         osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(220, now);
         gain1.gain.setValueAtTime(0.3, now); gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
@@ -273,33 +280,50 @@
         osc2.connect(gain2); gain2.connect(ctx.destination);
         osc2.start(now + 0.18); osc2.stop(now + 0.33);
       } catch (e) {}
-    }
+}
 
-    function focusInput() {
-      const inputEl = document.getElementById('manual-input');
-      if (inputEl) {
-        inputEl.focus();
-        inputEl.select();
+function focusInput() {
+@@ -352,9 +283,6 @@ <h3>📷 바코드 스캐너</h3>
+}
+}
+
+    // --------------------------------------------------
+    // 초기화 및 포커스 복원 이벤트
+    // --------------------------------------------------
+window.addEventListener('DOMContentLoaded', () => {
+document.getElementById('current-date').innerText = new Date().toLocaleDateString('ko-KR', {
+year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+@@ -369,39 +297,33 @@ <h3>📷 바코드 스캐너</h3>
+focusInput();
+}
+});
+
+setTimeout(focusInput, 200);
+});
+
+function fetchStudentList() {
+  const statusBar = document.getElementById('db-status-bar');
+  
+  fetch(GAS_URL)
+    .then(res => res.json())
+    .then(data => {
+      if (data.result === 'success' && data.students) {
+        studentDB = data.students;
+        const count = Object.keys(studentDB).length;
+        statusBar.innerText = `🟢 학생 명단 로드 완료 (${count}명 등록됨)`;
+        statusBar.className = "db-status success";
+        renderAttendanceList();
+      } else {
+        statusBar.innerText = "⚠️ 명단 불러오기 실패: '학생명단' 탭을 확인하세요.";
+        statusBar.className = "db-status error";
       }
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('current-date').innerText = new Date().toLocaleDateString('ko-KR', {
-        year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
-      });
-      
-      fetchStudentList();
-      restoreState();
-      window.addEventListener('online', syncOfflineData);
-
-      document.body.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
-          focusInput();
-        }
-      });
-      setTimeout(focusInput, 200);
+    })
+    .catch(err => {
+      console.error("명단 로드 실패:", err);
+      statusBar.innerText = "⚠️ 명단 동기화 실패 (기존 데이터 사용)";
+      statusBar.className = "db-status error";
     });
-
+}
     function fetchStudentList() {
       const statusBar = document.getElementById('db-status-bar');
       fetch(GAS_URL)
@@ -322,136 +346,138 @@
         });
     }
 
-    function getStudentDisplay(code) {
+function getStudentDisplay(code) {
+      if (studentDB && studentDB[code]) {
+        return studentDB[code];
+      }
+      return code;
       return (studentDB && studentDB[code]) ? studentDB[code] : code;
-    }
+}
 
-    function restoreState() {
-      document.getElementById('count').innerText = `${attendanceData.length}명`;
-      renderAttendanceList();
-      updateOfflineStatus();
-    }
+function restoreState() {
+@@ -412,12 +334,10 @@ <h3>📷 바코드 스캐너</h3>
 
-    function renderAttendanceList() {
-      const listEl = document.getElementById('attendance-list');
+function renderAttendanceList() {
+const listEl = document.getElementById('attendance-list');
+      
+if (attendanceData.length === 0) {
+listEl.innerHTML = '<li class="empty-msg">아직 등록된 학생이 없습니다.</li>';
+return;
+}
+
+listEl.innerHTML = attendanceData.slice().reverse().map((item, idx) => {
+const num = attendanceData.length - idx;
+const displayName = getStudentDisplay(item.code);
+@@ -432,18 +352,11 @@ <h3>📷 바코드 스캐너</h3>
+}
+
+function clearTodayData() {
       if (attendanceData.length === 0) {
-        listEl.innerHTML = '<li class="empty-msg">아직 등록된 학생이 없습니다.</li>';
+        alert("초기화할 등록 내역이 없습니다.");
         return;
       }
-      listEl.innerHTML = attendanceData.slice().reverse().map((item, idx) => {
-        const num = attendanceData.length - idx;
-        const displayName = getStudentDisplay(item.code);
-        return `
-          <li class="attendance-item">
-            <span class="num">${num}.</span>
-            <span class="student-info">${displayName}</span>
-            <span class="time">${item.time}</span>
-          </li>
-        `;
-      }).join('');
-    }
 
-    function clearTodayData() {
+      const confirmReset = confirm("오늘 등록된 전체 명단과 카운트를 초기화하시겠습니까?\n(※ 구글 시트에 이미 전송된 데이터는 지워지지 않습니다.)");
+      if (confirmReset) {
+        attendanceData = [];
+        offlineQueue = [];
       if (attendanceData.length === 0) return alert("초기화할 내역이 없습니다.");
       if (confirm("오늘 등록된 화면 명단을 초기화하시겠습니까?\n(구글 시트 저장 데이터는 지워지지 않습니다.)")) {
         attendanceData = []; offlineQueue = [];
-        localStorage.removeItem(`attendance_list_${todayKey}`);
-        localStorage.removeItem(`offline_queue_${todayKey}`);
-        restoreState();
-        document.getElementById('feedback').innerText = "화면 데이터가 초기화되었습니다.";
-        focusInput();
-      }
-    }
+localStorage.removeItem(`attendance_list_${todayKey}`);
+localStorage.removeItem(`offline_queue_${todayKey}`);
+        
+restoreState();
+document.getElementById('feedback').innerText = "화면 데이터가 초기화되었습니다.";
+focusInput();
+@@ -452,8 +365,7 @@ <h3>📷 바코드 스캐너</h3>
 
-    function onScanSuccess(decodedText) {
-      if (isProcessing) return;
+function onScanSuccess(decodedText) {
+if (isProcessing) return;
+
+      const convertedText = korToEng(decodedText.trim()); // 웹캠 스캔 시에도 변환 처리
       const convertedText = korToEng(decodedText.trim());
-      const feedback = document.getElementById('feedback');
-      const isDuplicate = attendanceData.some(item => item.code === convertedText);
-      const studentName = getStudentDisplay(convertedText);
+const feedback = document.getElementById('feedback');
+const isDuplicate = attendanceData.some(item => item.code === convertedText);
+const studentName = getStudentDisplay(convertedText);
+@@ -473,32 +385,24 @@ <h3>📷 바코드 스캐너</h3>
 
-      if (isDuplicate) {
-        isProcessing = true;
-        playWarningBeep();
-        feedback.innerText = `⚠️ 이미 출석 처리됨: [${studentName}]`;
-        feedback.classList.add('warning');
-        setTimeout(() => {
-          feedback.classList.remove('warning');
-          feedback.innerText = "카메라로 바코드를 비춰주세요.";
-          isProcessing = false;
-        }, 1200);
-        return;
-      }
+isProcessing = true;
+saveAttendance(convertedText);
 
-      isProcessing = true;
-      saveAttendance(convertedText);
-      setTimeout(() => {
-        isProcessing = false;
-        feedback.innerText = "다음 바코드를 비춰주세요.";
-      }, 1200);
-    }
+setTimeout(() => {
+isProcessing = false;
+feedback.innerText = "다음 바코드를 비춰주세요.";
+}, 1200);
+}
 
-    document.getElementById('manual-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = document.getElementById('manual-input');
-      const rawVal = input.value.trim();
-      input.value = '';
+    // --------------------------------------------------
+    // 🔥 USB 바코드 리더기 처리 (한/영 자동 변환 + 입력창 자동 비우기)
+    // --------------------------------------------------
+document.getElementById('manual-form').addEventListener('submit', (e) => {
+e.preventDefault();
+const input = document.getElementById('manual-input');
+const rawVal = input.value.trim();
 
-      if (!rawVal || isProcessing) {
-        focusInput();
-        return;
-      }
+      // 입력값 즉시 초기화
+input.value = '';
 
-      const val = korToEng(rawVal);
-      isProcessing = true;
+if (!rawVal || isProcessing) {
+focusInput();
+return;
+}
 
-      const isDuplicate = attendanceData.some(item => item.code === val);
-      const studentName = getStudentDisplay(val);
+      // 🎯 한글 입력 상태로 읽혀온 바코드를 영문 자판으로 즉시 변환 (예: 1858ㅋ -> 1858z)
+const val = korToEng(rawVal);
 
-      if (isDuplicate) {
-        playWarningBeep();
-        document.getElementById('feedback').innerText = `⚠️ 이미 출석 처리됨: [${studentName}]`;
-        document.getElementById('feedback').classList.add('warning');
-        setTimeout(() => {
-          input.value = '';
-          focusInput();
-        }, 50);
-        setTimeout(() => {
-          document.getElementById('feedback').classList.remove('warning');
+isProcessing = true;
+
+const isDuplicate = attendanceData.some(item => item.code === val);
+@@ -508,23 +412,19 @@ <h3>📷 바코드 스캐너</h3>
+playWarningBeep();
+document.getElementById('feedback').innerText = `⚠️ 이미 출석 처리됨: [${studentName}]`;
+document.getElementById('feedback').classList.add('warning');
+        
+setTimeout(() => {
+input.value = '';
+focusInput();
+}, 50);
+
+setTimeout(() => {
+document.getElementById('feedback').classList.remove('warning');
+          document.getElementById('feedback').innerText = "USB 바코드 리더기로 바코드를 스캔하세요.";
           document.getElementById('feedback').innerText = "바코드를 스캔하세요.";
-          isProcessing = false;
-        }, 1000);
-        return;
-      }
+isProcessing = false;
+}, 1000);
+return;
+}
 
-      saveAttendance(val);
-      setTimeout(() => {
-        input.value = '';
-        focusInput();
-        isProcessing = false;
-      }, 300);
-    });
-
-    function saveAttendance(rawCode) {
-      playSuccessBeep();
-      const timeString = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const newRecord = { code: rawCode, time: timeString };
-
-      attendanceData.push(newRecord);
-      localStorage.setItem(`attendance_list_${todayKey}`, JSON.stringify(attendanceData));
-
-      const studentName = getStudentDisplay(rawCode);
-      document.getElementById('count').innerText = `${attendanceData.length}명`;
-      document.getElementById('feedback').innerText = `✅ [${studentName}] 등록 완료!`;
+      // 변환 완료된 바코드 값으로 출석 등록
+saveAttendance(val);
       
-      renderAttendanceList();
-      offlineQueue.push(rawCode);
-      localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
-      updateOfflineStatus();
+setTimeout(() => {
+input.value = '';
+focusInput();
+@@ -534,7 +434,6 @@ <h3>📷 바코드 스캐너</h3>
+
+function saveAttendance(rawCode) {
+playSuccessBeep();
+
+const timeString = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const newRecord = { code: rawCode, time: timeString };
+
+@@ -546,58 +445,43 @@ <h3>📷 바코드 스캐너</h3>
+document.getElementById('feedback').innerText = `✅ [${studentName}] 등록 완료!`;
+
+renderAttendanceList();
+
+offlineQueue.push(rawCode);
+localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
+updateOfflineStatus();
       sendToGoogleSheet(rawCode);
     }
 
-   function sendToGoogleSheet(rawText) {
+function sendToGoogleSheet(rawText) {
   if (!navigator.onLine) return;
 
   fetch(GAS_URL, {
@@ -460,7 +486,7 @@
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
       raw_qr: rawText,
-      origin: window.location.origin // 👈 보안 검증용 출처 정보 전달
+      origin: window.location.origin // 👈 origin 출처 함께 전송
     })
   })
   .then(() => {
@@ -470,37 +496,79 @@
   })
   .catch(err => console.error("전송 오류:", err));
 }
+      if (!navigator.onLine) return;
+      fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_qr: rawText })
+      })
+      .then(() => {
+        offlineQueue = offlineQueue.filter(item => item !== rawText);
+        localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
+        updateOfflineStatus();
+      })
+      .catch(err => console.error("전송 오류:", err));
+    }
 
-    function syncOfflineData() {
-      if (offlineQueue.length === 0) return;
+function syncOfflineData() {
+if (offlineQueue.length === 0) return;
+      const itemsToSync = [...offlineQueue];
+      itemsToSync.forEach(item => sendToGoogleSheet(item));
       [...offlineQueue].forEach(item => sendToGoogleSheet(item));
-    }
+}
 
-    function updateOfflineStatus() {
+function updateOfflineStatus() {
+      const statusEl = document.getElementById('offline-count-status');
+      statusEl.innerText = `미전송 대기: ${offlineQueue.length}건`;
       document.getElementById('offline-count-status').innerText = `미전송 대기: ${offlineQueue.length}건`;
-    }
+}
 
-    function startCamera() {
-      if (isCameraRunning) return;
+    // --------------------------------------------------
+    // 🎥 웹캠 카메라 제어 함수 (보조용)
+    // --------------------------------------------------
+function startCamera() {
+if (isCameraRunning) return;
+
+      if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+      }
       if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
-      const cameraConfig = { facingMode: "environment" };
+const cameraConfig = { facingMode: "environment" };
+      const scannerConfig = { 
+        fps: 20, 
+        qrbox: { width: 280, height: 130 },
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+      };
       const scannerConfig = { fps: 20, qrbox: { width: 280, height: 130 }, experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
 
-      html5QrCode.start(cameraConfig, scannerConfig, onScanSuccess)
-        .then(() => {
-          isCameraRunning = true;
-          updateCamBtnUI(true);
-          document.getElementById('feedback').innerText = "카메라로 바코드를 비춰주세요.";
-        })
-        .catch(err => {
-          document.getElementById('feedback').innerText = "카메라 연결 실패 또는 권한 없음";
-          updateCamBtnUI(false);
-        });
-    }
+html5QrCode.start(cameraConfig, scannerConfig, onScanSuccess)
+.then(() => {
+@@ -606,46 +490,33 @@ <h3>📷 바코드 스캐너</h3>
+document.getElementById('feedback').innerText = "카메라로 바코드를 비춰주세요.";
+})
+.catch(err => {
+          console.error("카메라 에러:", err);
+document.getElementById('feedback').innerText = "카메라 연결 실패 또는 권한 없음";
+updateCamBtnUI(false);
+});
+}
 
-    function stopCamera() {
-      if (html5QrCode && isCameraRunning) {
+function stopCamera() {
+if (html5QrCode && isCameraRunning) {
+        html5QrCode.stop()
+          .then(() => {
+            isCameraRunning = false;
+            updateCamBtnUI(false);
+            document.getElementById('feedback').innerText = "카메라가 꺼져 있습니다.";
+            focusInput();
+          })
+          .catch(err => {
+            console.error("카메라 중지 에러:", err);
+            isCameraRunning = false;
+            updateCamBtnUI(false);
+          });
         html5QrCode.stop().then(() => {
           isCameraRunning = false;
           updateCamBtnUI(false);
@@ -510,18 +578,29 @@
           isCameraRunning = false;
           updateCamBtnUI(false);
         });
+}
+}
+
+function toggleCamera() {
+      if (isCameraRunning) {
+        stopCamera();
+      } else {
+        startCamera();
       }
-    }
-
-    function toggleCamera() {
       isCameraRunning ? stopCamera() : startCamera();
-    }
+}
 
-    function updateCamBtnUI(running) {
-      const btn = document.getElementById('cam-toggle-btn');
+function updateCamBtnUI(running) {
+const btn = document.getElementById('cam-toggle-btn');
+      if (running) {
+        btn.innerText = "카메라 끄기";
+        btn.className = "btn-cam stop";
+      } else {
+        btn.innerText = "카메라 켜기";
+        btn.className = "btn-cam start";
+      }
       btn.innerText = running ? "카메라 끄기" : "카메라 켜기";
       btn.className = running ? "btn-cam stop" : "btn-cam start";
-    }
-  </script>
+}
+</script>
 </body>
-</html>
