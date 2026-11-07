@@ -103,15 +103,25 @@
     .label-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .label { font-size: 0.95rem; color: #334155; font-weight: bold; }
     
+    /* 🎯 하단 버튼 컨트롤 영역 */
+    .table-footer-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+    }
+
     .btn-group-sm { display: flex; gap: 6px; align-items: center; }
     
     .btn-sort {
       background: #e2e8f0;
       border: 1px solid #cbd5e1;
       color: #475569;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.78rem;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.2s;
@@ -122,9 +132,30 @@
       border-color: #0284c7;
     }
 
-    .btn-sync { background: none; border: none; color: #0284c7; text-decoration: underline; cursor: pointer; font-size: 0.8rem; margin-left: 2px; }
-    .btn-reset { background: #f1f5f9; border: 1px solid #cbd5e1; color: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
-    .btn-reset:hover { background: #fee2e2; }
+    .btn-action-sm {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-action-sm:hover { background: #e2e8f0; }
+    
+    .btn-reset-sm {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #ef4444;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-reset-sm:hover { background: #fee2e2; border-color: #fca5a5; }
 
     /* 📊 표(Table) 전용 스타일 */
     .attendance-table-container {
@@ -172,7 +203,7 @@
     .col-time { width: 95px; text-align: right; color: #64748b; font-size: 0.8rem; }
     
     .empty-msg-td { text-align: center; color: #94a3b8; padding: 40px 0 !important; }
-    .sync-status { font-size: 0.8rem; color: #0284c7; text-align: right; margin-top: 8px; }
+    .sync-status { font-size: 0.8rem; color: #0284c7; font-weight: 500; }
   </style>
 </head>
 <body>
@@ -229,15 +260,9 @@
       <div class="card" style="height: 100%;">
         <div class="label-group">
           <span class="label">📋 오늘 출석 명단</span>
-          <div class="btn-group-sm">
-            <button id="btn-sort-time" class="btn-sort active" onclick="setSortMode('time')">시간순</button>
-            <button id="btn-sort-class" class="btn-sort" onclick="setSortMode('class')">학번순</button>
-            <button class="btn-sync" onclick="syncOfflineData()">🔄 동기화</button>
-            <button class="btn-reset" onclick="clearTodayData()">🗑️ 초기화</button>
-          </div>
         </div>
         
-        <!-- 📊 표(Table) 레이아웃 적용 컨테이너 -->
+        <!-- 📊 표(Table) 레이아웃 컨테이너 -->
         <div class="attendance-table-container">
           <table class="attendance-table">
             <thead>
@@ -255,7 +280,17 @@
           </table>
         </div>
 
-        <div class="sync-status" id="offline-count-status">미전송 대기: 0건</div>
+        <!-- 🎯 표 하단으로 이동 배치된 4개 컨트롤 버튼 및 미전송 상태 표시 -->
+        <div class="table-footer-controls">
+          <div class="btn-group-sm">
+            <button id="btn-sort-time" class="btn-sort active" onclick="setSortMode('time')">시간순</button>
+            <button id="btn-sort-class" class="btn-sort" onclick="setSortMode('class')">학번순</button>
+            <button class="btn-action-sm" onclick="syncOfflineData()">🔄 동기화</button>
+            <button class="btn-reset-sm" onclick="clearTodayData()">🗑️ 초기화</button>
+          </div>
+          <div class="sync-status" id="offline-count-status">미전송 대기: 0건</div>
+        </div>
+
       </div>
     </div>
 
@@ -485,7 +520,6 @@
       renderAttendanceList();
     }
 
-    // 📊 표(Table) 전용 데이터 렌더링 함수
     function renderAttendanceList() {
       const tbodyEl = document.getElementById('attendance-tbody');
       
