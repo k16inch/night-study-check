@@ -147,6 +147,19 @@
 </head>
 <body>
 
+  <!-- 🔒 PIN 비밀번호 잠금 화면 레이어 -->
+  <div id="lock-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f9; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px;">
+    <div style="background:#fff; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); text-align:center; max-width:320px; width:100%;">
+      <h3 style="margin-bottom:8px; color:#1e293b;">🔒 야자 출석 시스템</h3>
+      <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">관리자 4자리 PIN 번호를 입력하세요.</p>
+      <form id="pin-form" onsubmit="checkPin(event)">
+        <input type="password" id="pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="PIN 번호 입력" style="width:100%; padding:12px; font-size:1.2rem; text-align:center; border:2px solid #0284c7; border-radius:8px; margin-bottom:12px; letter-spacing:4px;" required autofocus>
+        <button type="submit" style="width:100%; padding:12px; background:#0284c7; color:#fff; border:none; border-radius:8px; font-weight:bold; font-size:1rem; cursor:pointer;">확인</button>
+      </form>
+      <p id="pin-error" style="color:#ef4444; font-size:0.8rem; margin-top:10px; display:none;">⚠️ 비밀번호가 일치하지 않습니다.</p>
+    </div>
+  </div>
+
   <!-- 헤더 영역 -->
   <div class="app-header">
     <h2>🌙 2학년 자습 바코드 출석 체크</h2>
@@ -209,9 +222,14 @@
 
   <script>
     // --------------------------------------------------
+    // 🔑 보안 설정: 사용할 4자리 비밀번호 (기본값: 1234)
+    // --------------------------------------------------
+    const ADMIN_PIN = "1234"; // 👈 원하시는 4자리 비밀번호로 변경해서 사용하세요!
+
+    // --------------------------------------------------
     // 설정: 구글 앱스 스크립트(GAS) Web App URL
     // --------------------------------------------------
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwjeIzlcIxMgZp-M3Jrd7m7woHEQUZKlBPPogyGmTHbkug32TxLQrQy3KRYExaymxs/exec"; // 본인 URL 유지
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwjeIzlcIxMgZp-M3Jrd7m7woHEQUZKlBPPogyGmTHbkug32TxLQrQy3KRYExaymxs/exec";
 
     let html5QrCode = null;
     let isCameraRunning = false;
@@ -225,6 +243,27 @@
     let offlineQueue = JSON.parse(localStorage.getItem(`offline_queue_${todayKey}`)) || [];
 
     let audioCtx = null;
+
+    // 🔒 PIN 번호 검증 함수
+    function checkPin(e) {
+      e.preventDefault();
+      const inputPin = document.getElementById('pin-input').value;
+      const errorMsg = document.getElementById('pin-error');
+
+      if (inputPin === ADMIN_PIN) {
+        // 비밀번호 일치 시 잠금 화면 숨김
+        document.getElementById('lock-screen').style.display = 'none';
+        
+        // 데이터 불러오기 및 스캐너 포커스 활성화
+        fetchStudentList();
+        setTimeout(focusInput, 200);
+      } else {
+        // 비밀번호 불일치 시
+        errorMsg.style.display = 'block';
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-input').focus();
+      }
+    }
 
     function getAudioContext() {
       if (!audioCtx) {
@@ -267,7 +306,7 @@
           continue;
         }
 
-        // 2. 완완성형 한글 가-힣 조합 분해 변환
+        // 2. 완성형 한글 가-힣 조합 분해 변환
         if (code >= 0xAC00 && code <= 0xD7A3) {
           let uniIndex = code - 0xAC00;
           let initial = Math.floor(uniIndex / 588);
@@ -364,17 +403,17 @@
         year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
       });
       
-      fetchStudentList();
       restoreState();
       window.addEventListener('online', syncOfflineData);
 
       document.body.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
-          focusInput();
+        // 잠금 화면이 열려있지 않을 때만 포커스 이동
+        if (document.getElementById('lock-screen').style.display === 'none') {
+          if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+            focusInput();
+          }
         }
       });
-
-      setTimeout(focusInput, 200);
     });
 
     function fetchStudentList() {
@@ -457,7 +496,7 @@
     function onScanSuccess(decodedText) {
       if (isProcessing) return;
 
-      const convertedText = korToEng(decodedText.trim()); // 웹캠 스캔 시에도 변환 처리
+      const convertedText = korToEng(decodedText.trim());
       const feedback = document.getElementById('feedback');
       const isDuplicate = attendanceData.some(item => item.code === convertedText);
       const studentName = getStudentDisplay(convertedText);
@@ -485,14 +524,13 @@
     }
 
     // --------------------------------------------------
-    // 🔥 USB 바코드 리더기 처리 (한/영 자동 변환 + 입력창 자동 비우기)
+    // 🔥 USB 바코드 리더기 처리
     // --------------------------------------------------
     document.getElementById('manual-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const input = document.getElementById('manual-input');
       const rawVal = input.value.trim();
 
-      // 입력값 즉시 초기화
       input.value = '';
 
       if (!rawVal || isProcessing) {
@@ -500,7 +538,6 @@
         return;
       }
 
-      // 🎯 한글 입력 상태로 읽혀온 바코드를 영문 자판으로 즉시 변환 (예: 1858ㅋ -> 1858z)
       const val = korToEng(rawVal);
 
       isProcessing = true;
@@ -526,7 +563,6 @@
         return;
       }
 
-      // 변환 완료된 바코드 값으로 출석 등록
       saveAttendance(val);
       
       setTimeout(() => {
