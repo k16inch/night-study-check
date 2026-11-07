@@ -114,23 +114,6 @@
     }
 
     .btn-group-sm { display: flex; gap: 6px; align-items: center; }
-    
-    .btn-sort {
-      background: #e2e8f0;
-      border: 1px solid #cbd5e1;
-      color: #475569;
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-size: 0.78rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-sort.active {
-      background: #0284c7;
-      color: white;
-      border-color: #0284c7;
-    }
 
     .btn-action-sm {
       background: #f1f5f9;
@@ -157,7 +140,7 @@
     }
     .btn-reset-sm:hover { background: #fee2e2; border-color: #fca5a5; }
 
-    /* 📊 표(Table) 전용 스타일 */
+    /* 📊 표(Table) 및 클릭 정렬 머릿글 스타일 */
     .attendance-table-container {
       height: 380px;
       overflow-y: auto;
@@ -177,11 +160,25 @@
       position: sticky;
       top: 0;
       background: #f1f5f9;
-      color: #334155;
+      color: #475569;
       font-weight: bold;
       padding: 10px 12px;
       border-bottom: 2px solid #cbd5e1;
       z-index: 10;
+      cursor: pointer; /* 클릭 정렬 호버 힌트 */
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    .attendance-table th:hover {
+      background: #e2e8f0;
+      color: #0284c7;
+    }
+
+    /* 활성화된 정렬 머릿글 스타일 */
+    .attendance-table th.active-sort {
+      background: #e0f2fe;
+      color: #0369a1;
     }
 
     .attendance-table td {
@@ -198,9 +195,9 @@
       background-color: #f0f9ff;
     }
 
-    .col-num { width: 50px; text-align: center; color: #64748b; font-weight: bold; }
-    .col-info { font-weight: bold; color: #0f172a; word-break: break-all; }
-    .col-time { width: 95px; text-align: right; color: #64748b; font-size: 0.8rem; }
+    .col-num { width: 55px; text-align: center; }
+    .col-info { }
+    .col-time { width: 105px; text-align: right; }
     
     .empty-msg-td { text-align: center; color: #94a3b8; padding: 40px 0 !important; }
     .sync-status { font-size: 0.8rem; color: #0284c7; font-weight: 500; }
@@ -259,17 +256,17 @@
     <div class="right-col">
       <div class="card" style="height: 100%;">
         <div class="label-group">
-          <span class="label">📋 오늘 출석 명단</span>
+          <span class="label">📋 오늘 출석 명단 (머릿글 클릭 시 정렬)</span>
         </div>
         
-        <!-- 📊 표(Table) 레이아웃 컨테이너 -->
+        <!-- 📊 표(Table) 레이아웃 및 머릿글 정렬 이벤트 -->
         <div class="attendance-table-container">
           <table class="attendance-table">
             <thead>
               <tr>
-                <th class="col-num">No.</th>
-                <th class="col-info">학생 정보 (학번/이름)</th>
-                <th class="col-time">출석 시간</th>
+                <th id="th-num" class="col-num active-sort" onclick="setSortMode('time')" title="시간순 정렬">No. 🕒</th>
+                <th id="th-info" class="col-info" onclick="setSortMode('class')" title="학번순 정렬">학생 정보 (학번/이름)</th>
+                <th id="th-time" class="col-time" onclick="setSortMode('time')" title="시간순 정렬">출석 시간</th>
               </tr>
             </thead>
             <tbody id="attendance-tbody">
@@ -280,11 +277,9 @@
           </table>
         </div>
 
-        <!-- 🎯 표 하단으로 이동 배치된 4개 컨트롤 버튼 및 미전송 상태 표시 -->
+        <!-- 하단 컨트롤 영역 -->
         <div class="table-footer-controls">
           <div class="btn-group-sm">
-            <button id="btn-sort-time" class="btn-sort active" onclick="setSortMode('time')">시간순</button>
-            <button id="btn-sort-class" class="btn-sort" onclick="setSortMode('class')">학번순</button>
             <button class="btn-action-sm" onclick="syncOfflineData()">🔄 동기화</button>
             <button class="btn-reset-sm" onclick="clearTodayData()">🗑️ 초기화</button>
           </div>
@@ -303,7 +298,7 @@
     let html5QrCode = null;
     let isCameraRunning = false;
     let isProcessing = false;
-    let currentSortMode = 'time';
+    let currentSortMode = 'time'; // 'time'(시간순) 또는 'class'(학번순)
     
     let studentDB = {};
 
@@ -455,7 +450,7 @@
 
       document.body.addEventListener('click', (e) => {
         if (document.getElementById('lock-screen').style.display === 'none') {
-          if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+          if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A' && e.target.tagName !== 'TH') {
             focusInput();
           }
         }
@@ -513,10 +508,28 @@
       updateOfflineStatus();
     }
 
+    // 🎯 머릿글 클릭 시 정렬 모드 변경 및 헤더 아이콘 UI 업데이트
     function setSortMode(mode) {
       currentSortMode = mode;
-      document.getElementById('btn-sort-time').className = (mode === 'time') ? 'btn-sort active' : 'btn-sort';
-      document.getElementById('btn-sort-class').className = (mode === 'class') ? 'btn-sort active' : 'btn-sort';
+      
+      const thNum = document.getElementById('th-num');
+      const thInfo = document.getElementById('th-info');
+      const thTime = document.getElementById('th-time');
+
+      if (mode === 'time') {
+        thNum.className = 'col-num active-sort';
+        thTime.className = 'col-time active-sort';
+        thInfo.className = 'col-info';
+        thNum.innerHTML = 'No. 🕒';
+        thInfo.innerHTML = '학생 정보 (학번/이름)';
+      } else if (mode === 'class') {
+        thNum.className = 'col-num';
+        thTime.className = 'col-time';
+        thInfo.className = 'col-info active-sort';
+        thNum.innerHTML = 'No.';
+        thInfo.innerHTML = '학생 정보 (학번/이름) 🔢';
+      }
+
       renderAttendanceList();
     }
 
@@ -545,7 +558,7 @@
         const displayName = getStudentDisplay(item.code);
         return `
           <tr>
-            <td class="col-num">${num}</td>
+            <td class="col-num" style="text-align:center;">${num}</td>
             <td class="col-info">${displayName}</td>
             <td class="col-time">${item.time}</td>
           </tr>
