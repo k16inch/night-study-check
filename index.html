@@ -373,11 +373,10 @@
       setTimeout(focusInput, 200);
     });
 
- function fetchStudentList() {
+function fetchStudentList() {
   const statusBar = document.getElementById('db-status-bar');
   
-  // URL 뒤에 origin 파라미터 전달
-  fetch(`${GAS_URL}?origin=${encodeURIComponent(window.location.origin)}`)
+  fetch(GAS_URL)
     .then(res => res.json())
     .then(data => {
       if (data.result === 'success' && data.students) {
@@ -387,13 +386,13 @@
         statusBar.className = "db-status success";
         renderAttendanceList();
       } else {
-        statusBar.innerText = "⚠️ 접근 거부 또는 명단 불러오기 실패";
+        statusBar.innerText = "⚠️ 명단 불러오기 실패: '학생명단' 탭을 확인하세요.";
         statusBar.className = "db-status error";
       }
     })
     .catch(err => {
       console.error("명단 로드 실패:", err);
-      statusBar.innerText = "⚠️ 명단 동기화 실패";
+      statusBar.innerText = "⚠️ 명단 동기화 실패 (기존 데이터 사용)";
       statusBar.className = "db-status error";
     });
 }
