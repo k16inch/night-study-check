@@ -373,29 +373,30 @@
       setTimeout(focusInput, 200);
     });
 
-    function fetchStudentList() {
-      const statusBar = document.getElementById('db-status-bar');
-      
-      fetch(GAS_URL)
-        .then(res => res.json())
-        .then(data => {
-          if (data.result === 'success' && data.students) {
-            studentDB = data.students;
-            const count = Object.keys(studentDB).length;
-            statusBar.innerText = `🟢 학생 명단 로드 완료 (${count}명 등록됨)`;
-            statusBar.className = "db-status success";
-            renderAttendanceList();
-          } else {
-            statusBar.innerText = "⚠️ 명단 불러오기 실패: '학생명단' 탭을 확인하세요.";
-            statusBar.className = "db-status error";
-          }
-        })
-        .catch(err => {
-          console.error("명단 로드 실패:", err);
-          statusBar.innerText = "⚠️ 명단 동기화 실패 (기존 일련번호로 표시됨)";
-          statusBar.className = "db-status error";
-        });
-    }
+ function fetchStudentList() {
+  const statusBar = document.getElementById('db-status-bar');
+  
+  // URL 뒤에 origin 파라미터 전달
+  fetch(`${GAS_URL}?origin=${encodeURIComponent(window.location.origin)}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.result === 'success' && data.students) {
+        studentDB = data.students;
+        const count = Object.keys(studentDB).length;
+        statusBar.innerText = `🟢 학생 명단 로드 완료 (${count}명 등록됨)`;
+        statusBar.className = "db-status success";
+        renderAttendanceList();
+      } else {
+        statusBar.innerText = "⚠️ 접근 거부 또는 명단 불러오기 실패";
+        statusBar.className = "db-status error";
+      }
+    })
+    .catch(err => {
+      console.error("명단 로드 실패:", err);
+      statusBar.innerText = "⚠️ 명단 동기화 실패";
+      statusBar.className = "db-status error";
+    });
+}
 
     function getStudentDisplay(code) {
       if (studentDB && studentDB[code]) {
@@ -551,28 +552,25 @@
       localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
       updateOfflineStatus();
 
-      sendToGoogleSheet(rawCode);
-    }
-
     function sendToGoogleSheet(rawText) {
-      if (!navigator.onLine) {
-        console.log("오프라인 상태: 저장소에 보관 후 추후 전송");
-        return;
-      }
+  if (!navigator.onLine) return;
 
-      fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_qr: rawText })
-      })
-      .then(() => {
-        offlineQueue = offlineQueue.filter(item => item !== rawText);
-        localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
-        updateOfflineStatus();
-      })
-      .catch(err => console.error("전송 오류:", err));
-    }
+  fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      raw_qr: rawText,
+      origin: window.location.origin // 👈 origin 출처 함께 전송
+    })
+  })
+  .then(() => {
+    offlineQueue = offlineQueue.filter(item => item !== rawText);
+    localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
+    updateOfflineStatus();
+  })
+  .catch(err => console.error("전송 오류:", err));
+}
 
     function syncOfflineData() {
       if (offlineQueue.length === 0) return;
