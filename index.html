@@ -451,21 +451,25 @@
       sendToGoogleSheet(rawCode);
     }
 
-    function sendToGoogleSheet(rawText) {
-      if (!navigator.onLine) return;
-      fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_qr: rawText })
-      })
-      .then(() => {
-        offlineQueue = offlineQueue.filter(item => item !== rawText);
-        localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
-        updateOfflineStatus();
-      })
-      .catch(err => console.error("전송 오류:", err));
-    }
+   function sendToGoogleSheet(rawText) {
+  if (!navigator.onLine) return;
+
+  fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      raw_qr: rawText,
+      origin: window.location.origin // 👈 보안 검증용 출처 정보 전달
+    })
+  })
+  .then(() => {
+    offlineQueue = offlineQueue.filter(item => item !== rawText);
+    localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
+    updateOfflineStatus();
+  })
+  .catch(err => console.error("전송 오류:", err));
+}
 
     function syncOfflineData() {
       if (offlineQueue.length === 0) return;
