@@ -103,7 +103,6 @@
     .label-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .label { font-size: 0.95rem; color: #334155; font-weight: bold; }
     
-    /* 🎯 하단 버튼 컨트롤 영역 */
     .table-footer-controls {
       display: flex;
       justify-content: space-between;
@@ -140,7 +139,7 @@
     }
     .btn-reset-sm:hover { background: #fee2e2; border-color: #fca5a5; }
 
-    /* 📊 표(Table) 및 클릭 정렬 머릿글 스타일 */
+    /* 📊 표(Table) 및 머릿글 정렬/삭제 버튼 스타일 */
     .attendance-table-container {
       height: 380px;
       overflow-y: auto;
@@ -162,10 +161,10 @@
       background: #f1f5f9;
       color: #475569;
       font-weight: bold;
-      padding: 10px 12px;
+      padding: 10px 8px;
       border-bottom: 2px solid #cbd5e1;
       z-index: 10;
-      cursor: pointer; /* 클릭 정렬 호버 힌트 */
+      cursor: pointer;
       user-select: none;
       transition: background 0.2s;
     }
@@ -175,14 +174,13 @@
       color: #0284c7;
     }
 
-    /* 활성화된 정렬 머릿글 스타일 */
     .attendance-table th.active-sort {
       background: #e0f2fe;
       color: #0369a1;
     }
 
     .attendance-table td {
-      padding: 9px 12px;
+      padding: 8px;
       border-bottom: 1px solid #e2e8f0;
       color: #0f172a;
     }
@@ -195,9 +193,24 @@
       background-color: #f0f9ff;
     }
 
-    .col-num { width: 55px; text-align: center; }
+    .col-num { width: 45px; text-align: center; }
     .col-info { }
-    .col-time { width: 105px; text-align: right; }
+    .col-time { width: 85px; text-align: center; }
+    .col-delete { width: 45px; text-align: center; cursor: default; }
+
+    .btn-del-item {
+      background: none;
+      border: none;
+      color: #ef4444;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 2px 5px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .btn-del-item:hover {
+      background: #fee2e2;
+    }
     
     .empty-msg-td { text-align: center; color: #94a3b8; padding: 40px 0 !important; }
     .sync-status { font-size: 0.8rem; color: #0284c7; font-weight: 500; }
@@ -259,29 +272,28 @@
           <span class="label">📋 오늘 출석 명단 (머릿글 클릭 시 정렬)</span>
         </div>
         
-        <!-- 📊 표(Table) 레이아웃 및 머릿글 정렬 이벤트 -->
         <div class="attendance-table-container">
           <table class="attendance-table">
             <thead>
               <tr>
                 <th id="th-num" class="col-num active-sort" onclick="setSortMode('time')" title="시간순 정렬">No. 🕒</th>
                 <th id="th-info" class="col-info" onclick="setSortMode('class')" title="학번순 정렬">학생 정보 (학번/이름)</th>
-                <th id="th-time" class="col-time" onclick="setSortMode('time')" title="시간순 정렬">출석 시간</th>
+                <th id="th-time" class="col-time" onclick="setSortMode('time')" title="시간순 정렬">시간</th>
+                <th class="col-delete" onclick="event.stopPropagation();">삭제</th>
               </tr>
             </thead>
             <tbody id="attendance-tbody">
               <tr>
-                <td colspan="3" class="empty-msg-td">아직 등록된 학생이 없습니다.</td>
+                <td colspan="4" class="empty-msg-td">아직 등록된 학생이 없습니다.</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- 하단 컨트롤 영역 -->
         <div class="table-footer-controls">
           <div class="btn-group-sm">
             <button class="btn-action-sm" onclick="syncOfflineData()">🔄 동기화</button>
-            <button class="btn-reset-sm" onclick="clearTodayData()">🗑️ 초기화</button>
+            <button class="btn-reset-sm" onclick="clearTodayData()">🗑️ 전체 초기화</button>
           </div>
           <div class="sync-status" id="offline-count-status">미전송 대기: 0건</div>
         </div>
@@ -298,7 +310,7 @@
     let html5QrCode = null;
     let isCameraRunning = false;
     let isProcessing = false;
-    let currentSortMode = 'time'; // 'time'(시간순) 또는 'class'(학번순)
+    let currentSortMode = 'time';
     
     let studentDB = {};
 
@@ -481,21 +493,28 @@
         });
     }
 
+    // 🎯 바코드 및 학번 정밀 탐색 / 미등록 검증 함수
     function resolveStudentIdentity(inputVal) {
-      if (!studentDB) return { canonicalKey: inputVal, displayName: inputVal };
-
-      if (studentDB[inputVal]) {
-        return { canonicalKey: inputVal, displayName: studentDB[inputVal] };
+      // 명단을 아직 불러오지 못한 경우(네트워크 오류 등) 차단 로직 통과 힌트
+      if (!studentDB || Object.keys(studentDB).length === 0) {
+        return { canonicalKey: inputVal, displayName: inputVal, isRegistered: true };
       }
 
+      // 1. 바코드 일련번호(A열) 키값과 직접 일치하는 경우
+      if (studentDB[inputVal]) {
+        return { canonicalKey: inputVal, displayName: studentDB[inputVal], isRegistered: true };
+      }
+
+      // 2. 수동 학번 입력 시(예: 20101) B열 학생 정보에서 학번 부분 매핑
       for (let serialKey in studentDB) {
         const studentInfo = studentDB[serialKey];
         if (studentInfo.startsWith(inputVal) || studentInfo.includes(inputVal)) {
-          return { canonicalKey: serialKey, displayName: studentInfo };
+          return { canonicalKey: serialKey, displayName: studentInfo, isRegistered: true };
         }
       }
 
-      return { canonicalKey: inputVal, displayName: inputVal };
+      // 3. 시트 명단에 없는 바코드 또는 학번인 경우 -> 미등록 리턴
+      return { canonicalKey: inputVal, displayName: inputVal, isRegistered: false };
     }
 
     function getStudentDisplay(code) {
@@ -508,7 +527,6 @@
       updateOfflineStatus();
     }
 
-    // 🎯 머릿글 클릭 시 정렬 모드 변경 및 헤더 아이콘 UI 업데이트
     function setSortMode(mode) {
       currentSortMode = mode;
       
@@ -537,7 +555,7 @@
       const tbodyEl = document.getElementById('attendance-tbody');
       
       if (attendanceData.length === 0) {
-        tbodyEl.innerHTML = '<tr><td colspan="3" class="empty-msg-td">아직 등록된 학생이 없습니다.</td></tr>';
+        tbodyEl.innerHTML = '<tr><td colspan="4" class="empty-msg-td">아직 등록된 학생이 없습니다.</td></tr>';
         return;
       }
 
@@ -561,9 +579,26 @@
             <td class="col-num" style="text-align:center;">${num}</td>
             <td class="col-info">${displayName}</td>
             <td class="col-time">${item.time}</td>
+            <td class="col-delete">
+              <button class="btn-del-item" onclick="deleteSingleAttendance('${item.code}', '${displayName}')" title="이 기록 삭제">🗑️</button>
+            </td>
           </tr>
         `;
       }).join('');
+    }
+
+    function deleteSingleAttendance(code, displayName) {
+      if (confirm(`[${displayName}] 학생의 출석 기록을 삭제하시겠습니까?`)) {
+        attendanceData = attendanceData.filter(item => item.code !== code);
+        offlineQueue = offlineQueue.filter(item => item !== code);
+
+        localStorage.setItem(`attendance_list_${todayKey}`, JSON.stringify(attendanceData));
+        localStorage.setItem(`offline_queue_${todayKey}`, JSON.stringify(offlineQueue));
+
+        restoreState();
+        document.getElementById('feedback').innerText = `🗑️ [${displayName}] 학생 출석이 삭제되었습니다.`;
+        focusInput();
+      }
     }
 
     function clearTodayData() {
@@ -592,6 +627,21 @@
       const identity = resolveStudentIdentity(rawVal);
       const feedback = document.getElementById('feedback');
 
+      // 🛑 1. 미등록 바코드 차단
+      if (!identity.isRegistered) {
+        isProcessing = true;
+        playWarningBeep();
+        feedback.innerText = `⚠️ 등록되지 않은 학생/바코드: [${rawVal}]`;
+        feedback.classList.add('warning');
+        setTimeout(() => {
+          feedback.classList.remove('warning');
+          feedback.innerText = "카메라로 바코드를 비춰주세요.";
+          isProcessing = false;
+        }, 1200);
+        return;
+      }
+
+      // 🛑 2. 중복 출석 차단
       const isDuplicate = attendanceData.some(item => {
         const itemIdentity = resolveStudentIdentity(item.code);
         return item.code === identity.canonicalKey || itemIdentity.canonicalKey === identity.canonicalKey;
@@ -619,6 +669,9 @@
       }, 1200);
     }
 
+    // --------------------------------------------------
+    // 🔥 USB 바코드 리더기 및 수동 입력 처리
+    // --------------------------------------------------
     document.getElementById('manual-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const input = document.getElementById('manual-input');
@@ -635,6 +688,26 @@
       const identity = resolveStudentIdentity(convertedVal);
       isProcessing = true;
 
+      // 🛑 1. 미등록 수동 학번/바코드 차단
+      if (!identity.isRegistered) {
+        playWarningBeep();
+        document.getElementById('feedback').innerText = `⚠️ 등록되지 않은 학생/바코드: [${rawInput}]`;
+        document.getElementById('feedback').classList.add('warning');
+        
+        setTimeout(() => {
+          input.value = '';
+          focusInput();
+        }, 50);
+
+        setTimeout(() => {
+          document.getElementById('feedback').classList.remove('warning');
+          document.getElementById('feedback').innerText = "바코드를 스캔하거나 학번을 입력하세요.";
+          isProcessing = false;
+        }, 1200);
+        return;
+      }
+
+      // 🛑 2. 중복 출석 차단
       const isDuplicate = attendanceData.some(item => {
         const itemIdentity = resolveStudentIdentity(item.code);
         return item.code === identity.canonicalKey || itemIdentity.canonicalKey === identity.canonicalKey;
